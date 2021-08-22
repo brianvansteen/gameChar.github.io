@@ -20,7 +20,8 @@ var trees_y;
 var collectables;
 var clouds;
 var darkclouds;
-var rainclouds;
+var emit1;
+var emit2;
 var killerclouds;
 var drop1;
 var drop2;
@@ -33,17 +34,20 @@ var game_score;
 var flagpole;
 var total_lives;
 var defense;
+var enemies;
 
 var jumpSound;
 var zapSound;
 var wetFootSound;
 var sweepSound;
+var descentSound;
+var cannonSound;
 
 
 function preload() {
     radio = loadImage("images/radio.png"); // nuclear symbol image
 
-    //soundFormats('mp3', 'wav');
+    soundFormats('mp3', 'wav');
 
     jumpSound = loadSound("assets/jump.wav");
     jumpSound.setVolume(0.1);
@@ -78,28 +82,36 @@ function draw() {
     fill(0, 155, 0);
     rect(0, floorPos_y, width, height / 4); // draw some green ground
 
-    // scrolling code ---------------------------------------------------------
+    // scrolling code -------------------------------------------------------------------
 
     push();
     translate(scrollPos, 0);
 
-    // Draw clouds. At line ~300 ----------------------------------------------
+    // Draw clouds. At line ~300 --------------------------------------------------------
 
     drawClouds();
 
-    // Draw mountains. At line ~320 -------------------------------------------
+    // Draw mountains. At line ~320 -----------------------------------------------------
 
     drawMountains();
 
-    // Draw rain clouds -------------------------------------------------------
+    // Draw rain clouds -----------------------------------------------------------------
 
     drawDarkClouds();
 
-    // Draw trees. At line ~340 -----------------------------------------------
+    // Draw trees. At line ~340 ---------------------------------------------------------
 
     drawTrees();
 
-    drawRainClouds();
+    emit1 = new Emitter(120, 250, 0, -1, 10, color(random(110, 140), 0, random(110, 140), 50));
+    emit1.startEmitter(100, 100);
+    emit1.updateParticles();
+
+    emit2 = new Emitter(820, 250, 0, -1, 10, color(random(110, 140), 0, random(110, 140), 50));
+    emit2.startEmitter(100, 100);
+    emit2.updateParticles();
+
+    //drawRainClouds();
 
     for (var i = 0; i < 50; i++) {
         drop1[i].shower();
@@ -111,20 +123,20 @@ function draw() {
         drop2[i].update();
     }
 
-    // Draw platform items. At line ~390 --------------------------------------
+    // Draw platform items. At line ~390 ------------------------------------------------
 
     drawPlatforms();
 
-    // Draw canyons. At line ~365 ---------------------------------------------
+    // Draw canyons. At line ~365 -------------------------------------------------------
 
     for (var i = 0; i < canyons.length; i++) {
         drawCanyon(canyons[i]);
         checkCanyon(canyons[i]);
     }
 
-    // Draw collectable items. At line ~390 -----------------------------------
+    // Draw collectables and defense items. At line ~390 --------------------------------
 
-    for (var i = 0; i < defense.length; i++) {
+    for (var i = 0; i < collectables.length; i++) {
         if (!collectables[i].isFound) {
             drawCollectable(collectables[i]);
             checkCollectable(collectables[i]);
@@ -132,34 +144,50 @@ function draw() {
     }
 
     for (var i = 0; i < defense.length; i++) {
-        if (!defense[i].isFound) {
+        if (!defense[i].ifFound) {
             drawDefense(defense[i]);
             checkDefense(defense[i]);
         }
     }
+
+    // Draw radioactive image -----------------------------------------------------------
 
     image(radio, 805, 410, 30, 30);
     image(radio, 105, 410, 30, 30);
 
     renderFlagpole();
 
+    // Draw enemies. At line ~390 -------------------------------------------------------
+
+    for (var i = 0; i < enemies.length; i++) {
+        enemies[i].draw();
+
+        var isContact = enemies[i].checkContact(gameChar_world_x, gameChar_y);
+        if (isContact === true) {
+            if (total_lives > 0) {
+                total_lives -= 1;
+                startGame();
+                break;
+            }
+        }
+    }
+
     pop();
+    // end scrolling code ---------------------------------------------------------------
 
 
-    // Draw game character ----------------------------------------------------
+    // Draw game character --------------------------------------------------------------
 
     drawGameChar(); // At line ~205
 
-    // draw the score and lives -----------------------------------------------
+    // draw the score and lives ---------------------------------------------------------
     push();
     fill(0);
     noStroke();
     textSize(20);
-
     text("SCORE: " + game_score, 20, 50);
     text("LIVES: " + total_lives, 900, 50);
     text("LIVES: ", width / 2 - 90, 50);
-
     for (var i = 0; i < total_lives; i++) {
         fill(255, 215, 0);
         ellipse(width / 2 + i * 50, 40, 40, 40);
@@ -168,9 +196,9 @@ function draw() {
     }
     pop();
 
-    // ------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------
 
-    // check when lives < 1; Game Over
+    // check when lives < 1; Game Over --------------------------------------------------
     if (total_lives < 1) {
         push()
         fill(0);
@@ -182,7 +210,7 @@ function draw() {
         return; //exit from draw function to prevent further game logic
     }
 
-    // check when flagpole is reached; Level Complete
+    // check when flagpole is reached; Level Complete -----------------------------------
     if (flagpole.isReached) {
         push()
         fill(0);
@@ -194,7 +222,7 @@ function draw() {
         return; //exit from draw function to prevent further game logic
     }
 
-    // Logic to make the game character move or the background scroll.
+    // Logic to make the game character move or the background scroll -------------------
 
     if (isLeft === true && isPlummeting === false) {
         if (gameChar_x > width * 0.2) {
@@ -212,7 +240,7 @@ function draw() {
         }
     }
 
-    // Logic to make the game character slowly fall back to ground level
+    // Logic to make the game character slowly fall back to ground level ----------------
 
     if (gameChar_y < floorPos_y) {
         var isContact = false;
@@ -235,9 +263,9 @@ function draw() {
         isFalling = false;
     }
 
-    if (isPlummeting === true) { // character plummeting into the canyon
+    if (isPlummeting === true) { // character plummeting into the canyon ----------------
         gameChar_y += 3;
-        gameChar_x += random(-3, 3);
+        gameChar_x += random(-4, 4);
         descendSound.play(0.1);
     }
 
@@ -251,9 +279,9 @@ function draw() {
     gameChar_world_x = gameChar_x - scrollPos;
 }
 
-// ----------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // Key control functions
-// ----------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 
 function keyPressed() {
     // if statements to control the animation of the character when
@@ -302,66 +330,276 @@ function drawGameChar() {
 
     if (flagpole.isReached === false && total_lives != 0) {
         // draw game character
-        if (isLeft && isFalling) {
-            // add your jumping-left code
+        if (isLeft && isFalling && defense[0].ifFound === true) { // jumping and facing left with gun
             fill(255, 182, 193); // head
-            ellipse(gameChar_x, gameChar_y - 62, 14, 22); //head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 76, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 82, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x - 8, gameChar_y - 60, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 6, gameChar_y - 54);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            endShape(); // mouth end
             fill(0, 0, 128); // body
             rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
             rect(gameChar_x - 10, gameChar_y - 26, 7, 8, 5); // legs
-            rect(gameChar_x + 3, gameChar_y - 26, 7, 8, 5); // legs
+            rect(gameChar_x, gameChar_y - 26, 7, 8, 5); // legs
             fill(65, 105, 225); // arms
             rect(gameChar_x - 12, gameChar_y - 68, 8, 25, 5); // arms
             fill(139, 69, 19); // feet
-            rect(gameChar_x - 18, gameChar_y - 20, 15, 10, 5); // feet
-            rect(gameChar_x - 3, gameChar_y - 20, 15, 10, 5); // feet
+            rect(gameChar_x - 16, gameChar_y - 20, 15, 10, 5); // feet
+            rect(gameChar_x, gameChar_y - 20, 15, 10, 5); // feet
+            fill(10, 10, 10);
+            noStroke();
+            rect(gameChar_x - 26, gameChar_y - 52, 14, 8, 5); // gun
+            rect(gameChar_x - 18, gameChar_y - 72, 6, 24, 5); // gun
 
-        } else if (isRight && isFalling) {
-            // add your jumping-right code
+        } else if (isLeft && isFalling) { // jumping and facing left
             fill(255, 182, 193); // head
-            ellipse(gameChar_x, gameChar_y - 62, 14, 22); //head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 76, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 82, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x - 8, gameChar_y - 60, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 6, gameChar_y - 54);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            endShape(); // mouth end
+            fill(0, 0, 128); // body
+            rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
+            rect(gameChar_x - 10, gameChar_y - 26, 7, 8, 5); // legs
+            rect(gameChar_x, gameChar_y - 26, 7, 8, 5); // legs
+            fill(65, 105, 225); // arms
+            rect(gameChar_x - 12, gameChar_y - 68, 8, 25, 5); // arms
+            fill(139, 69, 19); // feet
+            rect(gameChar_x - 16, gameChar_y - 20, 15, 10, 5); // feet
+            rect(gameChar_x, gameChar_y - 20, 15, 10, 5); // feet
+
+        } else if (isRight && isFalling && defense[0].ifFound === true) { // jumping and facing right with gun
+            fill(255, 182, 193); // head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 76, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 82, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x + 8, gameChar_y - 60, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x + 4, gameChar_y - 54);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            endShape(); // mouth end
             fill(0, 0, 128); // body
             rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
             rect(gameChar_x - 7, gameChar_y - 26, 7, 8, 5); // legs
-            rect(gameChar_x + 6, gameChar_y - 26, 7, 8, 5); // legs
+            rect(gameChar_x + 4, gameChar_y - 26, 7, 8, 5); // legs
             fill(65, 105, 225); // arms
-            rect(gameChar_x + 4, gameChar_y - 68, 8, 25, 5); // arms
+            rect(gameChar_x + 6, gameChar_y - 68, 8, 25, 5); // arms
+            fill(139, 69, 19); // feet
+            rect(gameChar_x - 13, gameChar_y - 20, 15, 10, 5); // feet
+            rect(gameChar_x + 3, gameChar_y - 20, 15, 10, 5); // feet
+            fill(10, 10, 10);
+            noStroke();
+            rect(gameChar_x + 12, gameChar_y - 55, 14, 8, 5); // gun
+            rect(gameChar_x + 12, gameChar_y - 74, 6, 24, 5); // gun
+
+        } else if (isRight && isFalling) { // jumping and facing right
+            fill(255, 182, 193); // head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 76, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 82, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x + 8, gameChar_y - 60, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x + 4, gameChar_y - 54);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            endShape(); // mouth end
+            fill(0, 0, 128); // body
+            rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
+            rect(gameChar_x - 7, gameChar_y - 26, 7, 8, 5); // legs
+            rect(gameChar_x + 4, gameChar_y - 26, 7, 8, 5); // legs
+            fill(65, 105, 225); // arms
+            rect(gameChar_x + 6, gameChar_y - 68, 8, 25, 5); // arms
             fill(139, 69, 19); // feet
             rect(gameChar_x - 13, gameChar_y - 20, 15, 10, 5); // feet
             rect(gameChar_x + 3, gameChar_y - 20, 15, 10, 5); // feet
 
-        } else if (isLeft) {
-            // add your walking left code
+        } else if (isLeft && defense[0].ifFound === true) { // walking to the left with gun
             fill(255, 182, 193); // head
-            ellipse(gameChar_x, gameChar_y - 62, 14, 22); //head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 70, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 76, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x - 8, gameChar_y - 62, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 6, gameChar_y - 54);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            endShape(); // mouth end
             fill(0, 0, 128); // body
             rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
             rect(gameChar_x - 10, gameChar_y - 26, 7, 18, 5); // legs
-            rect(gameChar_x + 3, gameChar_y - 26, 7, 18, 5); // legs
+            rect(gameChar_x, gameChar_y - 26, 7, 18, 5); // legs
+            fill(65, 105, 225); // arms
+            rect(gameChar_x - 12, gameChar_y - 48, 8, 25, 5); // arms
+            fill(139, 69, 19); // feet
+            rect(gameChar_x - 18, gameChar_y - 10, 15, 10, 5); // feet
+            rect(gameChar_x - 3, gameChar_y - 10, 15, 10, 5); // feet
+            fill(10, 10, 10);
+            noStroke();
+            rect(gameChar_x - 18, gameChar_y - 35, 8, 14, 5); // gun
+            rect(gameChar_x - 34, gameChar_y - 35, 24, 6, 5); // gun
+
+        } else if (isLeft) { // walking to the left
+            fill(255, 182, 193); // head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 70, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 76, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x - 8, gameChar_y - 62, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 8, gameChar_y - 58);
+            curveVertex(gameChar_x - 6, gameChar_y - 54);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            endShape(); // mouth end
+            fill(0, 0, 128); // body
+            rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
+            rect(gameChar_x - 10, gameChar_y - 26, 7, 18, 5); // legs
+            rect(gameChar_x, gameChar_y - 26, 7, 18, 5); // legs
             fill(65, 105, 225); // arms
             rect(gameChar_x - 12, gameChar_y - 48, 8, 25, 5); // arms
             fill(139, 69, 19); // feet
             rect(gameChar_x - 18, gameChar_y - 10, 15, 10, 5); // feet
             rect(gameChar_x - 3, gameChar_y - 10, 15, 10, 5); // feet
 
-        } else if (isRight) {
-            // add your walking right code
+        } else if (isRight && defense[0].ifFound === true) { // walking to the right with gun
             fill(255, 182, 193); // head
-            ellipse(gameChar_x, gameChar_y - 62, 14, 22); //head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 70, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 76, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x + 8, gameChar_y - 60, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x + 4, gameChar_y - 54);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            endShape(); // mouth end
             fill(0, 0, 128); // body
             rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
             rect(gameChar_x - 7, gameChar_y - 26, 7, 18, 5); // legs
-            rect(gameChar_x + 6, gameChar_y - 26, 7, 18, 5); // legs
+            rect(gameChar_x + 4, gameChar_y - 26, 7, 18, 5); // legs
+            fill(65, 105, 225); // arms
+            rect(gameChar_x + 4, gameChar_y - 48, 8, 25, 5); // arms
+            fill(139, 69, 19); // feet
+            rect(gameChar_x - 13, gameChar_y - 10, 15, 10, 5); // feet
+            rect(gameChar_x + 2, gameChar_y - 10, 15, 10, 5); // feet
+            fill(10, 10, 10);
+            noStroke();
+            rect(gameChar_x + 10, gameChar_y - 35, 8, 14, 5); // gun
+            rect(gameChar_x + 10, gameChar_y - 35, 24, 6, 5); // gun
+
+        } else if (isRight) { // walking to the right
+            fill(255, 182, 193); // head
+            ellipse(gameChar_x, gameChar_y - 62, 16, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 70, 20, 6); // hat
+            rect(gameChar_x - 8, gameChar_y - 76, 16, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // left eye
+            fill(205, 92, 92);
+            ellipse(gameChar_x + 8, gameChar_y - 60, 4, 4); // nose
+            beginShape(); //mouth start
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 58);
+            curveVertex(gameChar_x + 4, gameChar_y - 54);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            curveVertex(gameChar_x + 8, gameChar_y - 58);
+            endShape(); // mouth end
+            fill(0, 0, 128); // body
+            rect(gameChar_x - 7, gameChar_y - 52, 12, 30, 5); // body
+            rect(gameChar_x - 7, gameChar_y - 26, 7, 18, 5); // legs
+            rect(gameChar_x + 4, gameChar_y - 26, 7, 18, 5); // legs
             fill(65, 105, 225); // arms
             rect(gameChar_x + 4, gameChar_y - 48, 8, 25, 5); // arms
             fill(139, 69, 19); // feet
             rect(gameChar_x - 13, gameChar_y - 10, 15, 10, 5); // feet
             rect(gameChar_x + 3, gameChar_y - 10, 15, 10, 5); // feet
 
-        } else if (isFalling || isPlummeting) {
-            // add your jumping facing forwards code
+        } else if (isFalling && defense[0].ifFound === true ||
+            isPlummeting && defense[0].ifFound === true) { // falling or plummeting front facing with gun
             fill(255, 182, 193); // head
             ellipse(gameChar_x, gameChar_y - 62, 22, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 76, 24, 6); // hat
+            rect(gameChar_x - 10, gameChar_y - 82, 20, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // right eye
+            ellipse(gameChar_x, gameChar_y - 62, 3, 3); // nose
+            fill(205, 92, 92);
+            ellipse(gameChar_x, gameChar_y - 56, 6, 6); // mouth
+            fill(0, 0, 128); // body
+            rect(gameChar_x - 10, gameChar_y - 52, 20, 35, 5); // body
+            fill(65, 105, 225); // arms
+            rect(gameChar_x - 15, gameChar_y - 68, 8, 25, 5); // arms
+            rect(gameChar_x + 8, gameChar_y - 68, 8, 25, 5); // arms
+            fill(139, 69, 19); // feet
+            rect(gameChar_x - 18, gameChar_y - 20, 15, 10, 5); // feet
+            rect(gameChar_x + 2, gameChar_y - 20, 15, 10, 5); // feet
+            fill(10, 10, 10);
+            noStroke();
+            rect(gameChar_x + 10, gameChar_y - 55, 14, 8, 5); // gun
+            rect(gameChar_x + 10, gameChar_y - 80, 6, 24, 5); // gun
+
+        } else if (isFalling || isPlummeting) { // falling or plummeting front facing
+            fill(255, 182, 193); // head
+            ellipse(gameChar_x, gameChar_y - 62, 22, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 76, 24, 6); // hat
+            rect(gameChar_x - 10, gameChar_y - 82, 20, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // right eye
+            ellipse(gameChar_x, gameChar_y - 62, 3, 3); // nose
+            fill(205, 92, 92);
+            ellipse(gameChar_x, gameChar_y - 56, 6, 6); // mouth
             fill(0, 0, 128); // body
             rect(gameChar_x - 10, gameChar_y - 52, 20, 35, 5); // body
             fill(65, 105, 225); // arms
@@ -371,10 +609,57 @@ function drawGameChar() {
             rect(gameChar_x - 18, gameChar_y - 20, 15, 10, 5); // feet
             rect(gameChar_x + 2, gameChar_y - 20, 15, 10, 5); // feet
 
-        } else {
-            // add your standing front facing code
+        } else if (defense[0].ifFound === true) { // standing front facing with gun
             fill(255, 182, 193); // head
             ellipse(gameChar_x, gameChar_y - 62, 22, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 70, 24, 6); // hat
+            rect(gameChar_x - 10, gameChar_y - 76, 20, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // right eye
+            ellipse(gameChar_x, gameChar_y - 62, 3, 3); // nose
+            fill(205, 92, 92);
+            beginShape(); // mouth start
+            curveVertex(gameChar_x - 6, gameChar_y - 58);
+            curveVertex(gameChar_x - 6, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 54);
+            curveVertex(gameChar_x + 6, gameChar_y - 58);
+            curveVertex(gameChar_x + 6, gameChar_y - 58);
+            endShape(); // mouth end
+            fill(0, 0, 128); // body
+            rect(gameChar_x - 10, gameChar_y - 52, 20, 30, 5); // body
+            rect(gameChar_x - 10, gameChar_y - 26, 7, 18, 5); // legs
+            rect(gameChar_x + 3, gameChar_y - 26, 7, 18, 5); // legs
+            fill(65, 105, 225); // arms
+            rect(gameChar_x - 15, gameChar_y - 48, 8, 25, 5); // arms
+            rect(gameChar_x + 8, gameChar_y - 48, 8, 25, 5); // arms
+            fill(139, 69, 19); // feet
+            rect(gameChar_x - 18, gameChar_y - 10, 15, 10, 5); // feet
+            rect(gameChar_x + 2, gameChar_y - 10, 15, 10, 5); // feet
+            fill(10, 10, 10);
+            noStroke();
+            rect(gameChar_x + 10, gameChar_y - 35, 8, 14, 5); // gun
+            rect(gameChar_x + 10, gameChar_y - 35, 24, 6, 5); // gun
+
+        } else { // standing front facing
+            fill(255, 182, 193); // head
+            ellipse(gameChar_x, gameChar_y - 62, 22, 22); //head
+            fill(40);
+            ellipse(gameChar_x, gameChar_y - 70, 24, 6); // hat
+            rect(gameChar_x - 10, gameChar_y - 76, 20, 6, 2); // hat
+            fill(0);
+            ellipse(gameChar_x - 4, gameChar_y - 64, 3, 3); // left eye
+            ellipse(gameChar_x + 4, gameChar_y - 64, 3, 3); // right eye
+            ellipse(gameChar_x, gameChar_y - 62, 3, 3); // nose
+            fill(205, 92, 92);
+            beginShape(); //mouth start
+            curveVertex(gameChar_x - 6, gameChar_y - 58);
+            curveVertex(gameChar_x - 6, gameChar_y - 58);
+            curveVertex(gameChar_x, gameChar_y - 54);
+            curveVertex(gameChar_x + 6, gameChar_y - 58);
+            curveVertex(gameChar_x + 6, gameChar_y - 58);
+            endShape(); // mouth end
             fill(0, 0, 128); // body
             rect(gameChar_x - 10, gameChar_y - 52, 20, 30, 5); // body
             rect(gameChar_x - 10, gameChar_y - 26, 7, 18, 5); // legs
@@ -515,32 +800,7 @@ function drawDarkClouds() {
     }
 }
 
-// Function to draw killer rain clouds objects --------------------------------
-
-function drawRainClouds() {
-    for (var i = 0; i < killerclouds.length; i++) {
-        fill(75, 0, 130);
-        ellipse(killerclouds[i].pos_x, killerclouds[i].pos_y, // anchors for darkclouds[i].pos_x and darkclouds[i].pos_y
-            killerclouds[i].cloudSize, killerclouds[i].cloudSize);
-        fill(128, 0, 128);
-        ellipse(killerclouds[i].pos_x2, killerclouds[i].pos_y - 10,
-            killerclouds[i].cloudSize, killerclouds[i].cloudSize);
-        fill(153, 50, 204);
-        ellipse(killerclouds[i].pos_x3, killerclouds[i].pos_y - 10,
-            killerclouds[i].cloudSize, killerclouds[i].cloudSize);
-        fill(75, 0, 130);
-        ellipse(killerclouds[i].pos_x4, killerclouds[i].pos_y - 10,
-            killerclouds[i].cloudSize, killerclouds[i].cloudSize);
-        fill(128, 0, 128);
-        ellipse(killerclouds[i].pos_x5, killerclouds[i].pos_y + 10,
-            killerclouds[i].cloudSize, killerclouds[i].cloudSize);
-        fill(153, 50, 204);
-        ellipse(killerclouds[i].pos_x6, killerclouds[i].pos_y + 5,
-            killerclouds[i].cloudSize, killerclouds[i].cloudSize);
-    }
-}
-
-// Function to draw killer rain objects ---------------------------------------
+// Function to draw killer rain -----------------------------------------------
 
 function Drop1() {
     this.x = random(795, 840);
@@ -553,8 +813,8 @@ function Drop1() {
     }
 
     this.update = function() {
-        this.speed = random(5, 10);
-        this.gravity = 1.05;
+        this.speed = random(3, 5);
+        this.gravity = 1.01;
         this.y = this.y + this.speed * this.gravity;
 
         if (this.y > 432) {
@@ -575,8 +835,8 @@ function Drop2() {
     }
 
     this.update = function() {
-        this.speed = random(5, 10);
-        this.gravity = 1.05;
+        this.speed = random(3, 5);
+        this.gravity = 1.01;
         this.y = this.y + this.speed * this.gravity;
 
         if (this.y > 432) {
@@ -648,18 +908,18 @@ function drawDefense(t_defense) {
     push();
     fill(10, 10, 10);
     noStroke();
-    rect(t_defense.x, t_defense.y, 8, 12, 5);
+    rect(t_defense.x, t_defense.y, 8, 14, 5);
     rect(t_defense.x, t_defense.y - 2, 24, 6, 5);
     stroke(255, 215, 0);
     strokeWeight(4);
     fill(255, 215, 0, 80);
-    ellipse(t_defense.x + 8, t_defense.y + 4, 44, 44);
+    ellipse(t_defense.x + 10, t_defense.y + 4, 44, 44);
     pop();
 }
 
 function checkDefense(t_defense) {
-    if (dist(gameChar_world_x, gameChar_y, t_defense.x, t_defense.y) < 30) {
-        t_defense.isFound = true;
+    if (dist(gameChar_world_x, gameChar_y, t_defense.x, t_defense.y) < 40) {
+        t_defense.ifFound = true;
         console.log(t_defense.x, t_defense.y);
         console.log("collected");
     }
@@ -671,7 +931,18 @@ function drawPlatforms() {
     for (var i = 0; i < platforms.length; i++) {
         fill(150, 0, 0);
         noStroke();
+        ellipse(platforms[i].x + 10, platforms[i].y + 15, 25, 25);
+        ellipse(platforms[i].x + platforms[i].length * 0.5, platforms[i].y + 15, 25, 25);
+        ellipse(platforms[i].x + platforms[i].length - 12, platforms[i].y + 15, 25, 25);
+        fill(150, 0, 0);
+        noStroke();
         rect(platforms[i].x, platforms[i].y, platforms[i].length, 20);
+        fill(128, 0, 128);
+        noStroke();
+        ellipse(platforms[i].x + platforms[i].length * 0.5, platforms[i].y + 12, platforms[i].length, 30);
+        fill(0);
+        textSize(16);
+        text("JUMP!", platforms[i].x + platforms[i].length * 0.3, platforms[i].y + 15);
         if (platforms[i].range == 80) {
             platforms[i].left = true
         } else if (platforms[i].range == 0) {
@@ -684,18 +955,6 @@ function drawPlatforms() {
             platforms[i].x -= platforms[i].speed;
             platforms[i].range -= 0.5;
         }
-        // if (platforms[i].vertical == 20) {
-        //     platforms[i].height = true
-        // } else if (platforms[i].vertical == 0) {
-        //     platforms[i].height = false
-        // }
-        // if (platforms[i].height == false) {
-        //     platforms[i].y += platforms[i].speed;
-        //     platforms[i].vertical += 0.5;
-        // } else if (platforms[i].left == true) {
-        //     platforms[i].y -= platforms[i].speed;
-        //     platforms[i].vertical -= 0.5;
-        // }
     }
 }
 
@@ -759,9 +1018,9 @@ function checkPlayerDie() {
     }
 }
 
-// ----------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // Start game setup
-// ----------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 
 function startGame() {
     gameChar_x = width / 2;
@@ -774,20 +1033,20 @@ function startGame() {
         isReached: false,
     }
 
-    // Variable to control the background scrolling ---------------------------
+    // Variable to control the background scrolling -------------------------------------
     scrollPos = 0;
 
-    // Variable to store the real position of the gameChar in the game world --
-    // Needed for collision detection -----------------------------------------
+    // Variable to store the real position of the gameChar in the game world ------------
+    // Needed for collision detection ---------------------------------------------------
     gameChar_world_x = gameChar_x - scrollPos;
 
-    // Boolean variables to control the movement of the game character --------
+    // Boolean variables to control the movement of the game character ------------------
     isLeft = false;
     isRight = false;
     isFalling = false;
     isPlummeting = false;
 
-    // Initialise arrays of scenery objects -----------------------------------
+    // Initialise arrays of scenery objects ---------------------------------------------
 
     trees = [
         { pos_x: -380, pos_y: 288, height: random(50, 120) },
@@ -800,7 +1059,7 @@ function startGame() {
         { pos_x: 680, pos_y: 288, height: random(50, 120) },
         { pos_x: 740, pos_y: 288, height: random(50, 120) },
         { pos_x: 900, pos_y: 288, height: random(50, 120) },
-        { pos_x: 1100, pos_y: 288, height: random(50, 120) },
+        { pos_x: 1120, pos_y: 288, height: random(50, 120) },
         { pos_x: 1160, pos_y: 288, height: random(50, 120) },
     ]
 
@@ -815,7 +1074,7 @@ function startGame() {
     ]
 
     defense = [
-        { x: random(200, 400), y: random(floorPos_y - 5, floorPos_y - 200), ifFound: false }
+        { x: random(-300, 50), y: random(floorPos_y - 5, floorPos_y - 150), ifFound: false }
     ]
 
     clouds = [ // initialize a 'cloud area' for four clouds each, anchored to each x & y position below
@@ -849,20 +1108,20 @@ function startGame() {
         drop2[i] = new Drop2()
     }
 
-    mountains = [ // initialize the location and height of mountains ----------
+    mountains = [ // initialize the location and height of mountains --------------------
         { pos_x: -40, height: 20 },
         { pos_x: 400, height: 100 },
         { pos_x: 700, height: 120 },
         { pos_x: 1200, height: 100 },
     ]
 
-    canyons = [ // initialize the location and width of canyons ---------------
+    canyons = [ // initialize the location and width of canyons -------------------------
         { pos_x: -300, width: 80 },
-        { pos_x: 250, width: 100 },
-        { pos_x: 950, width: 160 },
+        { pos_x: 260, width: 100 },
+        { pos_x: 940, width: 160 },
     ]
 
-    // create 5 platforms of non-overlapping random locations and sizes -------
+    // create 5 platforms of non-overlapping random locations and sizes -----------------
     platforms = [];
     range = 0;
     while (platforms.length < 6) {
@@ -874,8 +1133,6 @@ function startGame() {
             speed: 0.5,
             range: 0,
             left: false,
-            vertical: 0,
-            height: false,
         };
         var overlapping = false;
         for (var j = 0; j < platforms.length; j++) {
@@ -888,5 +1145,119 @@ function startGame() {
         if (!overlapping) {
             platforms.push(plat);
         }
+    }
+
+    enemies = [] // creates enemies -----------------------------------------------------
+    enemies.push(new Enemy(400, floorPos_y - 10, 50))
+}
+
+// --------------------------------------------------------------------------------------
+// Constructors for particle clouds and enemies
+// --------------------------------------------------------------------------------------
+
+
+// create moving killer clouds ----------------------------------------------------------
+
+function Particle(x, y, xSpeed, ySpeed, size, colour) {
+    this.x = x;
+    this.y = y;
+    this.xSpeed = xSpeed;
+    this.ySpeed = ySpeed;
+    this.size = size;
+    this.colour = colour;
+    this.age = 0;
+
+    this.drawParticle = function() {
+        fill(this.colour);
+        noStroke();
+        ellipse(this.x, this.y, this.size);
+    }
+
+    this.updateParticle = function() {
+        this.x += this.xSpeed;
+        this.y += this.ySpeed;
+        this.age++;
+    }
+}
+
+function Emitter(x, y, xSpeed, ySpeed, size, colour) {
+    this.x = x;
+    this.y = y;
+    this.xSpeed = xSpeed;
+    this.ySpeed = ySpeed;
+    this.size = size;
+    this.colour = colour;
+
+    this.particles = [];
+
+    this.startParticles = [];
+    this.lifetime = 0;
+
+    this.addParticle = function() {
+        var p = new Particle(random(this.x - 5, this.x + 5),
+            random(this.y - 5, this.y + 5),
+            random(this.xSpeed - 0.4, this.xSpeed + 0.4),
+            random(this.ySpeed - 2, this.ySpeed - 1),
+            random(this.size - 4, this.size + 60),
+            this.colour);
+        return p;
+    }
+
+    this.startEmitter = function(startParticles, lifetime) {
+        this.startParticles = startParticles;
+        this.lifetime = lifetime;
+
+        for (var i = 0; i < startParticles; i++) {
+            this.particles.push(this.addParticle());
+        }
+    }
+
+    this.updateParticles = function() {
+        var deadParticles = 0
+        for (var i = this.particles.length - 1; i >= 0; i--) {
+            this.particles[i].drawParticle();
+            this.particles[i].updateParticle();
+            if (this.particles[i].age > random(0, this.lifetime)) {
+                this.particles.splice(i, 1);
+                deadParticles++;
+            }
+        }
+        if (deadParticles > 0) {
+            for (var i = 0; i < deadParticles; i++) {
+                this.particles.push(this.addParticle());
+            }
+        }
+    }
+}
+
+function Enemy(x, y, range) {
+    this.x = x;
+    this.y = y;
+    this.range = range;
+
+    this.currentX = x;
+    this.increment = 1;
+
+    this.update = function() {
+        this.currentX += this.increment;
+
+        if (this.currentX >= this.x + this.range) {
+            this.increment = -1;
+        } else if (this.currentX < this.x) {
+            this.increment = 1;
+        }
+    }
+    this.draw = function() {
+        this.update();
+        fill(200, 0, 0);
+        ellipse(this.currentX, this.y, 30, 30);
+    }
+
+    this.checkContact = function(gameCharX, gameCharY) {
+        var d = dist(gameCharX, gameCharY, this.currentX, this.y)
+        if (d < 20) {
+            return true;
+        }
+        return false;
     }
 }
