@@ -1,6 +1,18 @@
 /*
 
-The Game Project 5 - Bring it all together
+The Game Project Final - Bring it all together
+
+My Comments
+I have add extensios including:
+- sounds for the game character movement, including jumping, walking and plummeting, and when the game character reaches the flagpole
+- platforms that the game character can jump on, and the game character will move with the platform
+- two enemies that move in a set range
+
+What I am proud of, and was difficult, was to enable the game character to move with the platform after jumping onto a platform.
+The platforms move forward and back, without the user needing to do anything, the game character will move with the platform.
+
+What was difficult was to get the game character to interact with the enemies.
+What I also difficult was to create a firing capability for the game character's defense to interact with the enemies.
 
 */
 
@@ -20,20 +32,20 @@ var trees_y;
 var collectables;
 var clouds;
 var darkclouds;
-var emit1;
-var emit2;
+var emit1; // variable for killer rain clouds
+var emit2; // variable for killer rain clouds
 var killerclouds;
-var drop1;
-var drop2;
+var drop1; // variable for rain with cloud one
+var drop2; // variable for rain with cloud two
 var moutains;
 var canyons;
 var platforms;
-var range;
+var range; // variable for range of platform movement
 
 var game_score;
 var flagpole;
 var total_lives;
-var defense;
+var defense; // variable for defense item
 var enemies;
 
 var jumpSound;
@@ -82,26 +94,28 @@ function draw() {
     fill(0, 155, 0);
     rect(0, floorPos_y, width, height / 4); // draw some green ground
 
-    // scrolling code -------------------------------------------------------------------
+    // scrolling code -----------------------------------------------------------------------------
 
     push();
     translate(scrollPos, 0);
 
-    // Draw clouds. At line ~300 --------------------------------------------------------
+    // Draw clouds. At line ~695 ------------------------------------------------------------------
 
     drawClouds();
 
-    // Draw mountains. At line ~320 -----------------------------------------------------
+    // Draw mountains. At line ~720 ---------------------------------------------------------------
 
     drawMountains();
 
-    // Draw rain clouds -----------------------------------------------------------------
+    // Draw rain clouds. At linke ~780 ------------------------------------------------------------
 
     drawDarkClouds();
 
-    // Draw trees. At line ~340 ---------------------------------------------------------
+    // Draw trees. At line ~745 -------------------------------------------------------------------
 
     drawTrees();
+
+    // Draw killer rain clouds. At line ~1200 -----------------------------------------------------
 
     emit1 = new Emitter(120, 250, 0, -1, 10, color(random(110, 140), 0, random(110, 140), 50));
     emit1.startEmitter(100, 100);
@@ -110,8 +124,6 @@ function draw() {
     emit2 = new Emitter(820, 250, 0, -1, 10, color(random(110, 140), 0, random(110, 140), 50));
     emit2.startEmitter(100, 100);
     emit2.updateParticles();
-
-    //drawRainClouds();
 
     for (var i = 0; i < 50; i++) {
         drop1[i].shower();
@@ -123,18 +135,18 @@ function draw() {
         drop2[i].update();
     }
 
-    // Draw platform items. At line ~390 ------------------------------------------------
+    // Draw platform items. At line ~940 ----------------------------------------------------------
 
     drawPlatforms();
 
-    // Draw canyons. At line ~365 -------------------------------------------------------
+    // Draw canyons. At line ~870 -----------------------------------------------------------------
 
     for (var i = 0; i < canyons.length; i++) {
         drawCanyon(canyons[i]);
         checkCanyon(canyons[i]);
     }
 
-    // Draw collectables and defense items. At line ~390 --------------------------------
+    // Draw collectables. At line ~895 ------------------------------------------------------------
 
     for (var i = 0; i < collectables.length; i++) {
         if (!collectables[i].isFound) {
@@ -143,6 +155,8 @@ function draw() {
         }
     }
 
+    // Draw defense items. At line ~920 -----------------------------------------------------------
+
     for (var i = 0; i < defense.length; i++) {
         if (!defense[i].ifFound) {
             drawDefense(defense[i]);
@@ -150,14 +164,14 @@ function draw() {
         }
     }
 
-    // Draw radioactive image -----------------------------------------------------------
+    // Draw radioactive image ---------------------------------------------------------------------
 
     image(radio, 805, 410, 30, 30);
     image(radio, 105, 410, 30, 30);
 
     renderFlagpole();
 
-    // Draw enemies. At line ~390 -------------------------------------------------------
+    // Draw enemies. At line ~1250 ----------------------------------------------------------------
 
     for (var i = 0; i < enemies.length; i++) {
         enemies[i].draw();
@@ -173,14 +187,14 @@ function draw() {
     }
 
     pop();
-    // end scrolling code ---------------------------------------------------------------
+    // end scrolling code -------------------------------------------------------------------------
 
 
-    // Draw game character --------------------------------------------------------------
+    // Draw game character ------------------------------------------------------------------------
 
     drawGameChar(); // At line ~205
 
-    // draw the score and lives ---------------------------------------------------------
+    // draw the score and lives -------------------------------------------------------------------
     push();
     fill(0);
     noStroke();
@@ -196,9 +210,9 @@ function draw() {
     }
     pop();
 
-    // ----------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
 
-    // check when lives < 1; Game Over --------------------------------------------------
+    // check when lives < 1; Game Over ------------------------------------------------------------
     if (total_lives < 1) {
         push()
         fill(0);
@@ -210,7 +224,7 @@ function draw() {
         return; //exit from draw function to prevent further game logic
     }
 
-    // check when flagpole is reached; Level Complete -----------------------------------
+    // check when flagpole is reached; Level Complete ---------------------------------------------
     if (flagpole.isReached) {
         push()
         fill(0);
@@ -222,7 +236,7 @@ function draw() {
         return; //exit from draw function to prevent further game logic
     }
 
-    // Logic to make the game character move or the background scroll -------------------
+    // Logic to make the game character move or the background scroll -----------------------------
 
     if (isLeft === true && isPlummeting === false) {
         if (gameChar_x > width * 0.2) {
@@ -240,7 +254,7 @@ function draw() {
         }
     }
 
-    // Logic to make the game character slowly fall back to ground level ----------------
+    // Logic to make the game character slowly fall back to ground level --------------------------
 
     if (gameChar_y < floorPos_y) {
         var isContact = false;
@@ -263,7 +277,7 @@ function draw() {
         isFalling = false;
     }
 
-    if (isPlummeting === true) { // character plummeting into the canyon ----------------
+    if (isPlummeting === true) { // character plummeting into the canyon --------------------------
         gameChar_y += 3;
         gameChar_x += random(-4, 4);
         descendSound.play(0.1);
@@ -279,9 +293,9 @@ function draw() {
     gameChar_world_x = gameChar_x - scrollPos;
 }
 
-// --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // Key control functions
-// --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 function keyPressed() {
     // if statements to control the animation of the character when
@@ -308,8 +322,8 @@ function keyPressed() {
 }
 
 function keyReleased() {
-    // if statements to control the animation of the character when
-    // keys are released.
+    // if statements to control the animation of the character when -------------------------------
+    // keys are released --------------------------------------------------------------------------
 
     if (keyCode == 37) {
         isLeft = false;
@@ -320,11 +334,11 @@ function keyReleased() {
     }
 }
 
-// ------------------------------
+// ------------------------------------------------------------------------------------------------
 // Game character render function
-// ------------------------------
+// ------------------------------------------------------------------------------------------------
 
-// Function to draw the game character.
+// Function to draw the game character ------------------------------------------------------------
 
 function drawGameChar() {
 
@@ -675,11 +689,11 @@ function drawGameChar() {
     }
 }
 
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // Background render functions
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
-// Function to draw cloud objects ---------------------------------------------
+// Function to draw cloud objects -----------------------------------------------------------------
 
 function drawClouds() {
     for (var i = 0; i < clouds.length; i++) { // grouping of four clouds below
@@ -705,7 +719,7 @@ function drawClouds() {
     }
 }
 
-// Function to draw mountains objects.
+// Function to draw mountains objects -------------------------------------------------------------
 
 function drawMountains() {
     for (var i = 0; i < mountains.length; i++) {
@@ -729,7 +743,7 @@ function drawMountains() {
     }
 }
 
-// Function to draw trees objects.
+// Function to draw trees objects -----------------------------------------------------------------
 
 function drawTrees() {
     for (var i = 0; i < trees.length; i++) {
@@ -766,7 +780,7 @@ function drawTrees() {
     }
 }
 
-// Function to draw dark clouds objects ---------------------------------------
+// Function to draw dark clouds objects -----------------------------------------------------------
 
 function drawDarkClouds() {
     for (var i = 0; i < darkclouds.length; i++) { // grouping of four clouds below
@@ -800,7 +814,7 @@ function drawDarkClouds() {
     }
 }
 
-// Function to draw killer rain -----------------------------------------------
+// Function to draw killer rain -------------------------------------------------------------------
 
 function Drop1() {
     this.x = random(795, 840);
@@ -824,6 +838,8 @@ function Drop1() {
     }
 }
 
+// Function to draw killer rain -------------------------------------------------------------------
+
 function Drop2() {
     this.x = random(95, 140);
     this.y = random(280, 432);
@@ -846,11 +862,11 @@ function Drop2() {
     }
 }
 
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // Canyon render and check functions
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
-// Function to draw canyon objects --------------------------------------------
+// Function to draw canyon objects ----------------------------------------------------------------
 
 function drawCanyon(t_canyon) {
     fill(120, 120, 120);
@@ -873,11 +889,11 @@ function checkCanyon(t_canyon) {
     }
 }
 
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // Collectable items render and check functions
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
-// Function to draw collectable objects ---------------------------------------
+// Function to draw collectable objects -----------------------------------------------------------
 
 function drawCollectable(t_collectable) {
     fill(184, 134, 11); // outer colour for base circle
@@ -894,7 +910,7 @@ function drawCollectable(t_collectable) {
         t_collectable.size - 35, t_collectable.size - 35);
 }
 
-// Function to check character has collected an item --------------------------
+// Function to check character has collected an item ----------------------------------------------
 
 function checkCollectable(t_collectable) {
     if (dist(gameChar_world_x, gameChar_y, t_collectable.pos_x, t_collectable.pos_y) <
@@ -925,7 +941,7 @@ function checkDefense(t_defense) {
     }
 }
 
-// Functions to for platforms --------------------------
+// Functions to create platforms ------------------------------------------------------------------
 
 function drawPlatforms() {
     for (var i = 0; i < platforms.length; i++) {
@@ -969,11 +985,11 @@ function checkPlatform(gameC_x, gameC_y) {
         }
 }
 
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // End of level conditions
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
-// Function to draw flagpole --------------------------------------------------
+// Function to draw flagpole ----------------------------------------------------------------------
 
 function renderFlagpole() {
     push();
@@ -996,7 +1012,7 @@ function renderFlagpole() {
     }
 }
 
-// Function to check if player reaches flagpole -------------------------------
+// Function to check if player reaches flagpole ---------------------------------------------------
 
 function checkFlagpole() {
     var d = abs(gameChar_world_x - flagpole.x_pos);
@@ -1006,7 +1022,7 @@ function checkFlagpole() {
     }
 }
 
-// Function to check if player lives reach 0 ----------------------------------
+// Function to check if player lives reach 0 ------------------------------------------------------
 
 function checkPlayerDie() {
     if (gameChar_y > 670 || dist(gameChar_world_x, gameChar_y, killerclouds[0].pos_x, 432) < 20 ||
@@ -1018,9 +1034,9 @@ function checkPlayerDie() {
     }
 }
 
-// --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // Start game setup
-// --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 function startGame() {
     gameChar_x = width / 2;
@@ -1033,20 +1049,20 @@ function startGame() {
         isReached: false,
     }
 
-    // Variable to control the background scrolling -------------------------------------
+    // Variable to control the background scrolling -----------------------------------------------
     scrollPos = 0;
 
-    // Variable to store the real position of the gameChar in the game world ------------
-    // Needed for collision detection ---------------------------------------------------
+    // Variable to store the real position of the gameChar in the game world ----------------------
+    // Needed for collision detection -------------------------------------------------------------
     gameChar_world_x = gameChar_x - scrollPos;
 
-    // Boolean variables to control the movement of the game character ------------------
+    // Boolean variables to control the movement of the game character ----------------------------
     isLeft = false;
     isRight = false;
     isFalling = false;
     isPlummeting = false;
 
-    // Initialise arrays of scenery objects ---------------------------------------------
+    // Initialise arrays of scenery objects -------------------------------------------------------
 
     trees = [
         { pos_x: -380, pos_y: 288, height: random(50, 120) },
@@ -1108,20 +1124,20 @@ function startGame() {
         drop2[i] = new Drop2()
     }
 
-    mountains = [ // initialize the location and height of mountains --------------------
+    mountains = [ // initialize the location and height of mountains ------------------------------
         { pos_x: -40, height: 20 },
         { pos_x: 400, height: 100 },
         { pos_x: 700, height: 120 },
         { pos_x: 1200, height: 100 },
     ]
 
-    canyons = [ // initialize the location and width of canyons -------------------------
+    canyons = [ // initialize the location and width of canyons -----------------------------------
         { pos_x: -300, width: 80 },
         { pos_x: 260, width: 100 },
         { pos_x: 940, width: 160 },
     ]
 
-    // create 5 platforms of non-overlapping random locations and sizes -----------------
+    // create 5 platforms of non-overlapping random locations and sizes ---------------------------
     platforms = [];
     range = 0;
     while (platforms.length < 6) {
@@ -1147,16 +1163,17 @@ function startGame() {
         }
     }
 
-    enemies = [] // creates enemies -----------------------------------------------------
-    enemies.push(new Enemy(400, floorPos_y - 10, 50))
+    enemies = [] // creates enemies ---------------------------------------------------------------
+    enemies.push(new Enemy(600, floorPos_y - 10, 50))
+    enemies.push(new Enemy(0, floorPos_y - 10, 50))
 }
 
-// --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // Constructors for particle clouds and enemies
-// --------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 
-// create moving killer clouds ----------------------------------------------------------
+// function to create killer clouds with movement -------------------------------------------------
 
 function Particle(x, y, xSpeed, ySpeed, size, colour) {
     this.x = x;
@@ -1179,6 +1196,8 @@ function Particle(x, y, xSpeed, ySpeed, size, colour) {
         this.age++;
     }
 }
+
+// function to create the killer purple rain clouds -----------------------------------------------
 
 function Emitter(x, y, xSpeed, ySpeed, size, colour) {
     this.x = x;
@@ -1212,6 +1231,7 @@ function Emitter(x, y, xSpeed, ySpeed, size, colour) {
         }
     }
 
+    // update the particles of the killer purple rain clouds to add movement ----------------------
     this.updateParticles = function() {
         var deadParticles = 0
         for (var i = this.particles.length - 1; i >= 0; i--) {
@@ -1229,6 +1249,8 @@ function Emitter(x, y, xSpeed, ySpeed, size, colour) {
         }
     }
 }
+
+// constuctor to create the enemy -----------------------------------------------------------------
 
 function Enemy(x, y, range) {
     this.x = x;
@@ -1249,8 +1271,12 @@ function Enemy(x, y, range) {
     }
     this.draw = function() {
         this.update();
+        fill(0, 0, 0);
+        ellipse(this.currentX, this.y, 40, 40);
         fill(200, 0, 0);
-        ellipse(this.currentX, this.y, 30, 30);
+        triangle(this.currentX + 5, this.y, this.currentX + 10, this.y - 5, this.currentX + 15, this.y)
+        triangle(this.currentX - 15, this.y, this.currentX - 10, this.y - 5, this.currentX - 5, this.y)
+        ellipse(this.currentX, this.y + 8, 10, 10);
     }
 
     this.checkContact = function(gameCharX, gameCharY) {
